@@ -108,7 +108,7 @@ Seeder.prototype.clearModels = function(models, cb) {
 	});
 };
 
-Seeder.prototype.populateModels = function(seedData) {
+Seeder.prototype.populateModels = function(seedData, cb) {
 	if(!this.connected) {
 		return new Error('Not connected to db, exiting function');
 	}
@@ -123,19 +123,22 @@ Seeder.prototype.populateModels = function(seedData) {
 		}
 
 		// Populate each model
-		seedData.forEach(function(entry) {
+		async.each(seedData, function(entry, done) {
 			var Model = mongoose.model(entry.model);
-			entry.documents.forEach(function(document, j) {
+			async.each(entry.documents, function(document, documentDone) {
 				Model.create(document, function(err) {
+					var j = entry.documents.indexOf(document);
 					if (err) {
 						console.error(chalk.red('Error creating document [' + j + '] of ' + entry.model + ' model'));
 						console.error(chalk.red('Error: ' + err.message));
+						documentDone();
 						return;
 					}
 					console.log('Successfully created document [' + j + '] of ' + entry.model + ' model');
+					documentDone();
 				});
-			});
-		});
+			}, done);
+		}, cb);
 
 	});
 };
